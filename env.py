@@ -1,56 +1,88 @@
 import random
-from tasks import get_task
 
 class HospitalEnv:
-
-    def __init__(self):
+    def __init__(self, config=None):
+        config = config or {}
+        self.num_beds = config.get("beds", 5)
+        self.num_doctors = config.get("doctors", 3)
+        self.max_steps = config.get("max_steps", 50)
+        self.num_patients = config.get("patients", 10)
         self.reset()
 
-    def reset(self, level="easy"):
-        self.state = get_task(level)
-        self.state["time"] = 0
-        return self.state
+    def reset(self):
+        self.step_count = 0
+        self.beds_available = self.num_beds
+        self.doctors_available = self.num_doctors
+
+        self.patients = []
+        for _ in range(self.num_patients):
+            self.patients.append(self._generate_patient())
+
+        return self._get_state()
+
+    def _generate_patient(self):
+        return {
+            "type": random.choice(["normal", "emergency"]),
+            "severity": random.randint(1, 5),
+            "waiting_time": 0
+        }
+
+    def _get_state(self):
+        return {
+            "patients_waiting": len(self.patients),
+            "beds_available": self.beds_available,
+            "doctors_available": self.doctors_available
+        }
 
     def step(self, action):
+        """
+        Action:
+        0 -> Treat next patient
+        1 -> Skip (wait)
+        """
         reward = 0
+        done = False
+        info = {}
 
-        # Allocate bed
-        if action == "ALLOCATE_BED" and self.state["available_beds"] > 0:
-            if self.state["patients_waiting"] > 0:
-                self.state["patients_waiting"] -= 1
-                self.state["available_beds"] -= 1
-                reward += 10
+        if not self.patients:
+            return self._get_state(), reward, True, info
 
-        # Move to ICU
-        elif action == "MOVE_TO_ICU" and self.state["icu_beds"] > 0:
-            if self.state["critical_patients"] > 0:
-                self.state["critical_patients"] -= 1
-                self.state["icu_beds"] -= 1
-                reward += 25
+        # Sort patients: emergency + high severity first
+        self.patients.sort(key=lambda x: (x["type"] != "emergency", -x["severity"]))
 
-        # Wait
-        elif action == "WAIT":
-            reward -= 5
+        patient = self.patients[0]
 
-        # Penalty conditions
-        if self.state["patients_waiting"] > 20:
-            reward -= 10
+        if action == 0 and self.beds_available > 0 and self.doctors_available > 0:
+            self.patients.pop(0)
+            self.beds_available -= 1
+            self.doctors_available -= 1
 
-        if self.state["critical_patients"] > 5:
-            reward -= 20
+            # Reward Logic (STRONG)
+            reward += 30 - patient["waiting_time"]
+            reward += patient["severity"] * 6
 
-        # Emergency event (innovation 🔥)
-        if random.random() < 0.3:
-            self.state["patients_waiting"] += random.randint(5, 15)
-            self.state["critical_patients"] += random.randint(1, 5)
+            if patient["type"] == "emergency":
+                reward += 40
 
-        # Doctor fatigue (bonus 🔥)
-        if self.state["time"] > 10:
-            self.state["doctors_available"] = max(1, self.state["doctors_available"] - 1)
+        else:
+            reward -= 10  # bad action
 
-        self.state["time"] += 1
+        # Increase waiting time
+        for p in self.patients:
+            p["waiting_time"] += 1
+            if p["waiting_time"] > 10:
+                reward -= 50  # patient leaves
 
-        return self.state, reward
+        # Resource penalty
+        if self.beds_available > 0:
+            reward -= self.beds_available * 2
 
-    def get_state(self):
-        return self.state
+        # Release resources randomly (simulate discharge)
+        self.beds_available = min(self.num_beds, self.beds_available + random.randint(0, 1))
+        self.doctors_available = min(self.num_doctors, self.doctors_available + random.randint(0, 1))
+
+        self.step_count += 1
+        if self.step_count >= self.max_steps:
+            done = True
+
+        return self._get_state(), reward, done, info

@@ -1,17 +1,12 @@
-name: HospitalResourceEnv
-description: AI environment for hospital resource allocation
+name: hospital-openenv-ai
+version: 1.0
+description: Hospital workflow simulation environment
 
-state:
-  patients_waiting: int
-  critical_patients: int
-  available_beds: int
-  icu_beds: int
-  doctors_available: int
-  time: int
+tags:
+  - openenv
+  - healthcare-ai
 
-actions:
-  - ALLOCATE_BED
-  - MOVE_TO_ICU
-  - WAIT
-
-reward: maximize_patient_care
+tasks:
+  - triage
+  - report_review
+  - data_cleaning

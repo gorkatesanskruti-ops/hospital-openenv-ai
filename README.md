@@ -1,24 +1,43 @@
-# AI-Powered Hospital Resource Optimization Environment
+# 🏥 Hospital OpenEnv AI
 
 ## Overview
-This project simulates a hospital where an AI agent manages beds and ICU resources.
+This project simulates real-world hospital workflows using an OpenEnv-compatible environment.
 
-## Objective
-Minimize waiting time and prioritize critical patients.
+It includes tasks like:
+- Patient triage
+- Medical report correction
+- Data cleaning
 
 ## Tasks
-- Easy: Low load
-- Medium: Balanced load
-- Hard: Emergency case
 
-## Features
-- Emergency patient surge
-- Doctor fatigue system
-- Reward-based decision making
+### 1. Patient Triage (Easy)
+Classify urgency based on symptoms.
 
-## Tech
-- Python
-- OpenEnv system
+### 2. Medical Report Review (Medium)
+Correct errors in clinical text.
 
-## Author
-Sanskruti Gorkate
+### 3. Data Cleaning (Hard)
+Remove duplicates and handle missing values.
+
+## OpenEnv Compliance
+- step(action) → (observation, reward, done, info)
+- reset()
+- state()
+- Pydantic models for structured interaction
+
+## Setup
+
+pip install -r requirements.txt
+
+## Run
+
+python scripts/run_inference.py
+
+## Docker
+
+docker build -t hospital-env .
+docker run hospital-env
+
+## Why This Matters
+Hospitals face challenges like patient overload and data inconsistency.
+This environment enables AI agents to learn real-world decision-making workflows.

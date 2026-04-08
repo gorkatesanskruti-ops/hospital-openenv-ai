@@ -1,14 +1,37 @@
-def evaluate(env):
+from env import HospitalEnv
+from tasks import TASKS
 
-    score = 0
+def evaluate():
+    results = []
 
-    if env.state["patients_waiting"] < 10:
-        score += 50
+    for task in TASKS:
+        env = HospitalEnv(task["config"])
+        state = env.reset()
 
-    if env.state["critical_patients"] == 0:
-        score += 100
+        total_reward = 0
+        steps = 0
+        served = 0
 
-    if env.state["time"] < 20:
-        score += 50
+        done = False
 
-    return score
+        while not done:
+            action = 0 if state["beds_available"] > 0 else 1
+            state, reward, done, _ = env.step(action)
+
+            total_reward += reward
+            steps += 1
+            served += 1
+
+        results.append({
+            "task": task["name"],
+            "reward": total_reward,
+            "steps": steps,
+            "served": served
+        })
+
+    final_score = sum(r["reward"] for r in results)
+
+    return {
+        "score": final_score,
+        "details": results
+    }
